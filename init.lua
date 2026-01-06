@@ -181,6 +181,12 @@ vim.o.textwidth = 88
 --  See `:help hlsearch`
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
+-- Copy/Cut to system clipboard
+vim.keymap.set({ 'n', 'v' }, '<leader>c', '"+y', { noremap = true })
+vim.keymap.set({ 'n', 'v' }, '<leader>x', '"+d', { noremap = true })
+vim.keymap.set({ 'n', 'v' }, '<C-S-c>', '"+y', { noremap = true })
+vim.keymap.set({ 'n', 'v' }, '<C-S-x>', '"+d', { noremap = true })
+
 -- Diagnostic keymaps
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
 
