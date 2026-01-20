@@ -124,6 +124,9 @@ vim.o.showmode = false
 --   vim.o.clipboard = 'unnamedplus'
 -- end)
 
+-- Custom format options to avoid breaking line while writing long expression
+vim.o.formatoptions = 'jcroql'
+
 -- Enable break indent
 vim.o.breakindent = true
 
@@ -172,6 +175,9 @@ vim.o.scrolloff = 10
 -- See `:help 'confirm'`
 vim.o.confirm = true
 
+vim.o.tabstop = 4
+vim.o.shiftwidth = 4
+vim.o.expandtab = true
 vim.o.textwidth = 88
 
 -- [[ Basic Keymaps ]]
@@ -182,10 +188,15 @@ vim.o.textwidth = 88
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
 -- Copy/Cut to system clipboard
-vim.keymap.set({ 'n', 'v' }, '<leader>c', '"+y', { noremap = true })
-vim.keymap.set({ 'n', 'v' }, '<leader>x', '"+d', { noremap = true })
-vim.keymap.set({ 'n', 'v' }, '<C-S-c>', '"+y', { noremap = true })
-vim.keymap.set({ 'n', 'v' }, '<C-S-x>', '"+d', { noremap = true })
+vim.keymap.set({ 'n', 'v' }, '<leader>c', '"+y', { noremap = true, desc = 'Yank to system clipboard' })
+vim.keymap.set({ 'n', 'v' }, '<leader>x', '"+d', { noremap = true, desc = 'Delete and yank to system clipboard' })
+if vim.fn.has 'macunix' then
+  vim.keymap.set({ 'n', 'v' }, '<D-c>', '"+y', { noremap = true, desc = 'Yank to system clipboard' })
+  vim.keymap.set({ 'n', 'v' }, '<D-x>', '"+d', { noremap = true, desc = 'Delete and yank to system clipboard' })
+else
+  vim.keymap.set({ 'n', 'v' }, '<C-S-c>', '"+y', { noremap = true, desc = 'Yank to system clipboard' })
+  vim.keymap.set({ 'n', 'v' }, '<C-S-x>', '"+d', { noremap = true, desc = 'Delete and yank to system clipboard' })
+end
 
 -- Diagnostic keymaps
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
@@ -686,8 +697,21 @@ require('lazy').setup({
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
         clangd = {},
-        -- gopls = {},
-        pyright = {},
+        gopls = {},
+        pyright = {
+          settings = {
+            pyright = {
+              -- Using isort or ruff
+              disableOrganizeImports = true,
+            },
+            python = {
+              analysis = {
+                -- Ignore all files for analysis to exclusively use Ruff for linting
+                ignore = { ' * ' },
+              },
+            },
+          },
+        },
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
@@ -695,7 +719,7 @@ require('lazy').setup({
         --    https://github.com/pmizio/typescript-tools.nvim
         --
         -- But for many setups, the LSP (`ts_ls`) will work just fine
-        -- ts_ls = {},
+        ts_ls = {},
         --
 
         lua_ls = {
@@ -712,6 +736,7 @@ require('lazy').setup({
             },
           },
         },
+        yamlls = {},
       }
 
       -- Ensure the servers and tools above are installed
@@ -732,6 +757,13 @@ require('lazy').setup({
         'stylua', -- Used to format Lua code
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
+
+      -- NOTE: not sure why this is needed, but config wasn't being applied otherwise
+      for server, config in pairs(servers) do
+        if not vim.tbl_isempty(config) then
+          vim.lsp.config(server, config)
+        end
+      end
 
       require('mason-lspconfig').setup {
         ensure_installed = {}, -- explicitly set to an empty table (Kickstart populates installs via mason-tool-installer)
@@ -783,7 +815,10 @@ require('lazy').setup({
       formatters_by_ft = {
         lua = { 'stylua' },
         -- Conform can also run multiple formatters sequentially
-        python = { 'isort', 'black' },
+        python = {
+          'ruff_format',
+          'isort',
+        },
         --
         -- You can use 'stop_after_first' to run the first available formatter from the list
         -- javascript = { "prettierd", "prettier", stop_after_first = true },
@@ -849,7 +884,7 @@ require('lazy').setup({
         -- <c-k>: Toggle signature help
         --
         -- See :h blink-cmp-config-keymap for defining your own keymap
-        preset = 'super-tab',
+        preset = 'default',
 
         -- For more advanced Luasnip keymaps (e.g. selecting choice nodes, expansion) see:
         --    https://github.com/L3MON4D3/LuaSnip?tab=readme-ov-file#keymaps
@@ -858,7 +893,7 @@ require('lazy').setup({
       appearance = {
         -- 'mono' (default) for 'Nerd Font Mono' or 'normal' for 'Nerd Font'
         -- Adjusts spacing to ensure icons are aligned
-        nerd_font_variant = 'mono',
+        nerd_font_variant = 'normal',
       },
 
       completion = {
@@ -958,7 +993,7 @@ require('lazy').setup({
     main = 'nvim-treesitter.configs', -- Sets main module to use for opts
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
     opts = {
-      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
+      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'python', 'query', 'vim', 'vimdoc' },
       -- Autoinstall languages that are not installed
       auto_install = true,
       highlight = {
@@ -987,10 +1022,10 @@ require('lazy').setup({
   --  Here are some example plugins that I've included in the Kickstart repository.
   --  Uncomment any of the lines below to enable them (you will need to restart nvim).
   --
-  -- require 'kickstart.plugins.debug',
-  -- require 'kickstart.plugins.indent_line',
+  require 'kickstart.plugins.debug',
+  require 'kickstart.plugins.indent_line',
   -- require 'kickstart.plugins.lint',
-  -- require 'kickstart.plugins.autopairs',
+  require 'kickstart.plugins.autopairs',
   require 'kickstart.plugins.neo-tree',
   require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
 
