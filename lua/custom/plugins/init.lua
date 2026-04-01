@@ -2,6 +2,8 @@
 --  I promise not to create any merge conflicts in this directory :)
 --
 -- See the kickstart.nvim README for more information
+---@module 'lazy'
+---@type LazySpec
 return {
   { -- Gitlinker: <leader>gy to copy permalink of remote git in current line
     'ruifm/gitlinker.nvim',
